@@ -87,35 +87,34 @@
         <select id="filterGraph" class="border text-black border-gray-300 rounded px-4 py-2">
             <option value="all">All Graphs</option>
             <option value="age">Trends Over Time</option>
-            <option value="region">Regional Comparison</option>
             <option value="age">Age Group Analysis</option>
             <option value="economic">Economic Factors</option>
         </select>
-        <input type="text" id="searchGraph" class="border text-white border-gray-300 rounded px-4 py-2" placeholder="Search by title...">
+        <input type="text" id="searchGraph" class="border text-black border-gray-300 rounded px-4 py-2" placeholder="Search by title...">
     </header>
 
 
 	<!-- Graphs Section -->
+
     <section class="container mx-auto p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="graphsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for image, title, description in graphs %}
-            <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition duration-300 graph-card" 
+            <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition duration-300 graph-card"
                  data-category="{{ title | lower }}">
-                 <img src="{{ url_for('static', filename='images/' + image) }}" 
-                 class="analytics-img rounded-lg border border-gray-300 max-w-full h-auto"
-                 alt="{{ title }}" 
-                 data-image="{{ url_for('static', filename='images/' + image) }}"
-                 data-title="{{ title }}"
-                 data-description="{{ description }}"
-                 onclick="openModal(this)">
-            
-                <h2 class="mt-4 text-lg font-2xl text-black">{{ title | safe | trim }}</h2>
+                <img src="{{ url_for('static', filename='images/' + image) }}" 
+                     class="analytics-img rounded-lg border border-gray-300 max-w-full h-auto"
+                     alt="{{ title }}" 
+                     data-image="{{ url_for('static', filename='images/' + image) }}"
+                     data-title="{{ title }}"
+                     data-description="{{ description }}"
+                     onclick="openModal(this)">
+                
+                <h2 class="mt-4 text-lg font-bold text-black">{{ title | safe | trim }}</h2>
                 <p class="text-sm text-black">{{ description }}</p>
             </div>
             {% endfor %}
         </div>
     </section>
-    
     
     
     <!-- Modal -->
@@ -159,27 +158,33 @@
     
     <!-- JavaScript for Filtering Functionality -->
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const filterSelect = document.getElementById('filterGraph');
-        const searchInput = document.getElementById('searchGraph');
-        const graphCards = document.querySelectorAll('.graph-card');
+document.addEventListener('DOMContentLoaded', function() {
+    const filterSelect = document.getElementById('filterGraph');
+    const searchInput = document.getElementById('searchGraph');
+    const graphCards = document.querySelectorAll('.graph-card');
 
-        function filterGraphs() {
-          const filterValue = filterSelect.value.toLowerCase();
-          const searchValue = searchInput.value.toLowerCase();
+    function filterGraphs() {
+        const filterValue = filterSelect.value.toLowerCase();
+        const searchValue = searchInput.value.toLowerCase();
 
-          graphCards.forEach(card => {
+        graphCards.forEach(card => {
             const cardCategory = card.getAttribute('data-category').toLowerCase();
             const title = card.querySelector('h2').innerText.toLowerCase();
-            const matchesFilter = filterValue === 'all' || cardCategory === filterValue;
-            const matchesSearch = title.includes(searchValue);
-            card.style.display = (matchesFilter && matchesSearch) ? 'block' : 'none';
-          });
-        }
 
-        filterSelect.addEventListener('change', filterGraphs);
-        searchInput.addEventListener('keyup', filterGraphs);
-      });
+            const matchesFilter = filterValue === 'all' || cardCategory.includes(filterValue);
+            const matchesSearch = title.includes(searchValue);
+
+            if (matchesFilter && matchesSearch) {
+                card.classList.remove('hidden');
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+    }
+
+    filterSelect.addEventListener('change', filterGraphs);
+    searchInput.addEventListener('keyup', filterGraphs);
+});
 
       function openModal(imgElement) {
     let imageSrc = imgElement.getAttribute('data-image');
