@@ -1,155 +1,100 @@
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pycountry_convert as pc
+import plotly.express as px
+import plotly.io as pio
 from flask import Flask, render_template
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Define dataset path
+# Define base directory and data path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(BASE_DIR, "data", "suicide_rates.csv")
+DATA_PATH = os.path.join(BASE_DIR, "data")
 
-# Function to map country to continent
-def country_to_continent(country):
-    try:
-        country_code = pc.country_name_to_country_alpha2(country, cn_name_format="default")
-        continent_code = pc.country_alpha2_to_continent_code(country_code)
-        continent_name = {
-            "AF": "Africa",
-            "AS": "Asia",
-            "EU": "Europe",
-            "NA": "North America",
-            "SA": "South America",
-            "OC": "Oceania"
-        }.get(continent_code, "Unknown")
-        return continent_name
-    except:
-        return "Unknown"
+# Load datasets
+suicide_rates_df = pd.read_csv(os.path.join(DATA_PATH, "suicide_rates.csv")).dropna()
+age_std_suicide_rates_df = pd.read_csv(os.path.join(DATA_PATH, "age_std_suicide_rates.csv")).dropna()
 
-# Load dataset
-df = pd.read_csv(DATA_PATH)
-df.columns = df.columns.str.strip().str.lower()
+# Sample data if too large
+if len(suicide_rates_df) > 500:
+    suicide_rates_df = suicide_rates_df.sample(n=500, random_state=42)
 
-# Ensure 'continent' column exists
-if "continent" not in df.columns:
-    df["continent"] = df["countryname"].apply(country_to_continent)
+if len(age_std_suicide_rates_df) > 500:
+    age_std_suicide_rates_df = age_std_suicide_rates_df.sample(n=500, random_state=42)
 
-# Ensure 'static/images' directory exists
-STATIC_IMAGES_PATH = os.path.join(BASE_DIR, "static", "images")
-os.makedirs(STATIC_IMAGES_PATH, exist_ok=True)
-
-# Define color palette
-color_palette = sns.color_palette("Set2")
-
-# Adjust column mappings dynamically
-column_mappings = {
-    "year": "year",
-    "suicide rate": "deathrateper100k",
-    "country": "countryname",
-    "age group": "agegroup",
-    "gdp per capita": "gdppercapita",
-    "population": "population",
-    "continent": "continent"
-}
-
-graphs = []
-
-if df is not None:
-    try:
-        plt.figure(figsize=(12, 6))
-        avg_rate = df.groupby(column_mappings["year"])[column_mappings["suicide rate"]].mean()
-        avg_rate.plot(kind="bar", color=color_palette[0])
-        plt.title("Average Suicide Rate by Year")
-        plt.ylabel("Death Rate per 100k")
-        plt.xlabel("Year")
-        plt.xticks(rotation=45)
-        bar_chart_path = os.path.join(STATIC_IMAGES_PATH, "bar_chart.png")
-        plt.savefig(bar_chart_path)
-        plt.close()
-        graphs.append(("bar_chart.png", "Average Suicide Rate by Year", "The average global suicide rate has been a critical metric for understanding mental health trends over time. A bar chart depicting the average suicide rate by year can provide a clear visual representation of how these rates have fluctuated."))
-
-        plt.figure(figsize=(12, 6))
-        countries = ["United States", "Japan", "India", "Germany"]
-        subset = df[df[column_mappings["country"]].isin(countries)]
-        sns.lineplot(data=subset, x=column_mappings["year"], y=column_mappings["suicide rate"], hue=column_mappings["country"], palette=sns.color_palette("Set2", n_colors=len(countries)))
-        plt.title("Suicide Rates Over Time (Selected Countries)")
-        plt.xlabel("Year")
-        plt.ylabel("Suicide Rate per 100k")
-        plt.xticks(rotation=45)
-        line_chart_path = os.path.join(STATIC_IMAGES_PATH, "line_chart.png")
-        plt.savefig(line_chart_path)
-        plt.close()
-        graphs.append(("line_chart.png", "Suicide Rates Over Time", "A line chart comparing suicide rates in select countries can offer insights into how different nations have managed mental health issues. For example, the Centers for Disease Control and Prevention (CDC) reports that suicide rates in the United States increased by 37% between 2000 and 2018, then decreased by 5% between 2018 and 2020, only to return to their peak in 2022."))
-
-        latest_year = df[column_mappings["year"]].max()
-        age_groups = df[df[column_mappings["year"]] == latest_year].groupby(column_mappings["age group"])[column_mappings["suicide rate"]].mean()
-        plt.figure(figsize=(10, 10))
-        age_groups.plot(kind="pie", autopct='%1.1f%%', colors=color_palette)
-        plt.title(f"Suicide Rates by Age Group ({latest_year})")
-        pie_chart_path = os.path.join(STATIC_IMAGES_PATH, "pie_chart.png")
-        plt.savefig(pie_chart_path)
-        plt.close()
-        graphs.append(("pie_chart.png", f"Suicide Rates by Age Group ({latest_year})", f"Proportional suicide rates by age group in the latest year can be visualized using a pie chart. This chart can reveal which age groups are most at risk. "))
-
-        plt.figure(figsize=(12, 6))
-        continent_data = df.groupby([column_mappings["continent"], column_mappings["year"]])[column_mappings["suicide rate"]].mean().unstack()
-        continent_data.T.plot(kind="bar", stacked=True, figsize=(12, 6), colormap="Set3")
-        plt.title("Suicide Rate by Continent Over Time")
-        plt.ylabel("Suicide Rate per 100k")
-        plt.xlabel("Year")
-        plt.xticks(rotation=45)
-        stacked_bar_path = os.path.join(STATIC_IMAGES_PATH, "stacked_bar.png")
-        plt.savefig(stacked_bar_path)
-        plt.close()
-        graphs.append(("stacked_bar.png", "Suicide Rate by Continent", "A stacked bar chart comparing suicide rates across continents can illustrate regional disparities. "))
-
-        plt.figure(figsize=(12, 6))
-        sns.scatterplot(data=df, x=column_mappings["gdp per capita"], y=column_mappings["suicide rate"], hue=column_mappings["continent"], palette="tab10")
-        plt.title("GDP Per Capita vs. Suicide Rate")
-        plt.xlabel("GDP Per Capita")
-        plt.ylabel("Suicide Rate per 100k")
-        scatter_plot_path = os.path.join(STATIC_IMAGES_PATH, "scatter_plot.png")
-        plt.savefig(scatter_plot_path)
-        plt.close()
-        graphs.append(("scatter_plot.png", "Economic Impact on Suicide Rate", "A scatter plot showing GDP per capita vs. suicide rate can highlight the economic factors influencing suicide rates. Research indicates that economic downturns, such as the 2008 global financial crisis, have been associated with increased suicide rates, particularly among men in countries with significant job losses. "))
-
-        plt.figure(figsize=(12, 6))
-        sns.boxplot(data=df, x=column_mappings["age group"], y=column_mappings["suicide rate"], hue=column_mappings["age group"], palette="coolwarm")
-        plt.title("Suicide Rate Distribution by Age Group")
-        plt.xticks(rotation=45)
-        box_plot_path = os.path.join(STATIC_IMAGES_PATH, "box_plot.png")
-        plt.savefig(box_plot_path)
-        plt.close()
-        graphs.append(("box_plot.png", "Suicide Rate by Age", "A box plot showing the distribution of suicide rates by age group can provide a detailed view of the variability within each age group. "))
-
-        plt.figure(figsize=(12, 6))
-        plt.hist(df[column_mappings["suicide rate"]], bins=20, color=color_palette[0], edgecolor='black', alpha=0.7)
-        plt.title("Distribution of Suicide Rates")
-        plt.xlabel("Suicide Rate per 100k")
-        histogram_path = os.path.join(STATIC_IMAGES_PATH, "histogram.png")
-        plt.savefig(histogram_path)
-        plt.close()
-        graphs.append(("histogram.png", "Suicide Rate Distribution", "A histogram depicting the distribution of suicide rates can show how these rates are spread across different populations. This type of chart can reveal whether suicide rates are concentrated in specific demographics or more evenly distributed."))
-
-        plt.figure(figsize=(12, 6))
-        sns.scatterplot(data=df, x=column_mappings["gdp per capita"], y=column_mappings["suicide rate"], size=column_mappings["population"], hue=column_mappings["continent"], palette="viridis", sizes=(10, 1000), alpha=0.6)
-        plt.title("Suicide Rate vs. GDP Per Capita (Bubble Size = Population)")
-        plt.xlabel("GDP Per Capita")
-        plt.ylabel("Suicide Rate per 100k")
-        bubble_chart_path = os.path.join(STATIC_IMAGES_PATH, "bubble_chart.png")
-        plt.savefig(bubble_chart_path)
-        plt.close()
-        graphs.append(("bubble_chart.png", "Bubble Chart Analysis", "Bubble chart showing suicide rate vs. GDP per capita, with bubble size representing population."))
-
-    except KeyError as e:
-        print(f"\n❌ Error: Missing column in dataset - {e}\n")
-
-
-@app.route('/')
+@app.route("/")
 def index():
+    graphs = []
+
+    # === FIRST DATASET (suicide_rates_df) ===
+    # 1. Line Graph: Global Suicide Trends Over Time
+    # Aggregate suicide rates per country
+# Sort countries by suicide rates for better readability
+    country_avg = suicide_rates_df.groupby("CountryName")["DeathRatePer100K"].mean().reset_index()
+    country_avg = country_avg.sort_values(by="DeathRatePer100K", ascending=False).head(15)  # Show top 15 countries
+
+# Create Bar Chart for Global Suicide Rates
+    fig1 = px.bar(
+    country_avg, x="CountryName", y="DeathRatePer100K",
+    title="Top 15 Countries with Highest Suicide Rates",
+    labels={"DeathRatePer100K": "Suicide Rate per 100K"},
+    color="CountryName",
+        text_auto=True,
+        color_discrete_sequence=px.colors.qualitative.Vivid
+    )
+    graphs.append(("Global Suicide Trends", "Top countries with highest suicide rates", pio.to_html(fig1, full_html=False)))
+
+
+
+    # 2. Bar Graph: Suicide Rates by Country
+    avg_suicide_by_country = suicide_rates_df.groupby("CountryName")["DeathRatePer100K"].mean().reset_index()
+    fig2 = px.bar(
+        avg_suicide_by_country.sort_values("DeathRatePer100K", ascending=False).head(10),
+        x="CountryName", y="DeathRatePer100K", color="CountryName",
+        title="Top 10 Countries by Suicide Rate",
+        labels={"DeathRatePer100K": "Average Suicide Rate per 100K"}
+    )
+    graphs.append(("Top Countries Suicide Rate", "Top 10 countries with the highest suicide rates", pio.to_html(fig2, full_html=False)))
+
+    # 3. Pie Chart: Suicide Rate Distribution by Continent
+    if "RegionName" in suicide_rates_df.columns:
+        region_avg = suicide_rates_df.groupby("RegionName")["DeathRatePer100K"].mean().reset_index()
+        fig3 = px.pie(
+            region_avg, names="RegionName", values="DeathRatePer100K",
+            title="Suicide Rates by Continent",
+            color_discrete_sequence=px.colors.qualitative.Pastel
+        )
+        graphs.append(("Suicide Rates by Continent", "Percentage of suicide rates by continent", pio.to_html(fig3, full_html=False)))
+
+    # === SECOND DATASET (age_std_suicide_rates_df) ===
+    # 4. Line Graph: Suicide Trends by Age Group Over Time
+    if "Generation" in age_std_suicide_rates_df.columns:
+        fig4 = px.line(
+            age_std_suicide_rates_df, x="Year", y="DeathRatePer100K", color="Generation",
+            title="Suicide Rates by Age Group Over Time",
+            labels={"DeathRatePer100K": "Suicide Rate per 100K"}
+        )
+        graphs.append(("Suicide by Age Group", "Trends of suicide rates for different age groups", pio.to_html(fig4, full_html=False)))
+
+    # 5. Bar Graph: Suicide Rates by Gender and Region
+    if "Sex" in age_std_suicide_rates_df.columns and "RegionName" in age_std_suicide_rates_df.columns:
+        fig5 = px.bar(
+            age_std_suicide_rates_df, x="Sex", y="DeathRatePer100K", color="RegionName",
+            title="Suicide Rates by Gender and Region",
+            barmode="group",
+            labels={"DeathRatePer100K": "Suicide Rate per 100K"}
+        )
+        graphs.append(("Suicide by Gender & Region", "Comparison of suicide rates by gender and region", pio.to_html(fig5, full_html=False)))
+
+    # 6. Pie Chart: Suicide Rate Distribution by Gender
+    if "Sex" in age_std_suicide_rates_df.columns:
+        gender_avg = age_std_suicide_rates_df.groupby("Sex")["DeathRatePer100K"].mean().reset_index()
+        fig6 = px.pie(
+            gender_avg, names="Sex", values="DeathRatePer100K",
+            title="Suicide Rates by Gender",
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        graphs.append(("Suicide Rates by Gender", "Distribution of suicide rates between males and females", pio.to_html(fig6, full_html=False)))
+
     return render_template("index.html", graphs=graphs)
 
 if __name__ == "__main__":

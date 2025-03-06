@@ -9,6 +9,8 @@
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/logo1.png') }}">
     <link rel="icon" type="image/x-icon" href="../static/images/Logo1.ico">
 	<script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 </head>
 
 <style>
@@ -80,42 +82,58 @@
     </div>
 
 	<!-- Header Section -->
-    <header id="head" class="p-6 text-center bg-yellow-500">
+    <header id="head" class="p-6 text-center bg-yellow-500 shadow-lg">
         <h1 class="text-3xl font-bold text-black">Suicide Rate Analysis</h1>
-        <p class="mt-2 text-black">Understanding suicide trends to improve mental health awareness and intervention efforts.</p>
-        <label for="filterGraph" class="text-lg text-white font-semibold">Filter By:</label>
-        <select id="filterGraph" class="border text-black border-gray-300 rounded px-4 py-2">
-            <option value="all">All Graphs</option>
-            <option value="age">Trends Over Time</option>
-            <option value="age">Age Group Analysis</option>
-            <option value="economic">Economic Factors</option>
-        </select>
-        <input type="text" id="searchGraph" class="border text-black border-gray-300 rounded px-4 py-2" placeholder="Search by title...">
+        <p class="mt-2 text-black text-lg">
+            Understanding suicide trends to improve mental health awareness and intervention efforts.
+        </p>
+    
+        <!-- Filter Section -->
+        <div class="mt-4 flex flex-col md:flex-row justify-center items-center gap-4">
+            <div>
+                <label for="filterGraph" class="text-lg text-white font-semibold">Filter By:</label>
+                <select id="filterGraph" class="border text-black border-gray-300 rounded px-4 py-2 bg-white">
+                    <option value="all">All Graphs</option>
+                    <option value="trends">Trends Over Time</option>
+                    <option value="age">Age Group Analysis</option>
+                    <option value="economic">Economic Factors</option>
+                    <option value="region">Regional Distribution</option>
+                    <option value="gender">Gender Comparison</option>
+                </select>
+            </div>
+    
+            <!-- Search Box -->
+            <div>
+                <input 
+                    type="text" 
+                    id="searchGraph" 
+                    class="border text-black border-gray-300 rounded px-4 py-2 w-60" 
+                    placeholder="Search by title..."
+                >
+            </div>
+        </div>
     </header>
+    
 
 
 	<!-- Graphs Section -->
 
     <section class="container mx-auto p-6">
         <div id="graphsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for image, title, description in graphs %}
+            {% for title, description, graph in graphs %}
             <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition duration-300 graph-card"
                  data-category="{{ title | lower }}">
-                <img src="{{ url_for('static', filename='images/' + image) }}" 
-                     class="analytics-img rounded-lg border border-gray-300 max-w-full h-auto"
-                     alt="{{ title }}" 
-                     data-image="{{ url_for('static', filename='images/' + image) }}"
-                     data-title="{{ title }}"
-                     data-description="{{ description }}"
-                     onclick="openModal(this)">
                 
-                <h2 class="mt-4 text-lg font-bold text-black">{{ title | safe | trim }}</h2>
-                <p class="text-sm text-black">{{ description }}</p>
+                <div class="graph-container">
+                    {{ graph | safe }}
+                </div>
+                
+                <h2 class="mt-4 text-lg font-bold text-gray-900">{{ title | safe | trim }}</h2>
+                <p class="text-sm text-gray-700">{{ description }}</p>
             </div>
             {% endfor %}
         </div>
     </section>
-    
     
     <!-- Modal -->
     <div id="imageModal" class="modal">
