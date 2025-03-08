@@ -43,6 +43,10 @@
     justify-content: center;
     align-items: center;
 }
+.graph-container { width: 100%; text-align: center; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); }
+        .modal-content { margin: auto; width: 80%; height: 80%; background: white; }
+        .close { color: white; font-size: 30px; cursor: pointer; position: absolute; top: 10px; right: 20px; }
 
 .modal-content {
     background: white;
@@ -118,33 +122,35 @@
 
 	<!-- Graphs Section -->
 
-    <section class="container mx-auto p-6">
-        <div id="graphsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {% for title, description, graph in graphs %}
-            <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition duration-300 graph-card"
-                 data-category="{{ title | lower }}">
-                
-                <div class="graph-container">
-                    {{ graph | safe }}
-                </div>
-                
-                <h2 class="mt-4 text-lg font-bold text-gray-900">{{ title | safe | trim }}</h2>
-                <p class="text-sm text-gray-700">{{ description }}</p>
+<!-- Graphs Section -->
+<!-- Graphs Section -->
+<section class="container mx-auto p-6">
+    <div id="graphsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for title, description, graph in graphs %}
+        <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 graph-card"
+             onclick="openGraphModal(`{{ title }}`, `graph-{{ loop.index }}`)">
+            <h2 class="mt-4 text-lg font-bold text-gray-900">{{ title }}</h2>
+            <p class="text-sm text-gray-700">{{ description }}</p>
+            <div id="graph-{{ loop.index }}" class="graph-container">
+                {{ graph | safe }} <!-- Make sure the graph is correctly included here -->
             </div>
-            {% endfor %}
         </div>
-    </section>
-    
-    <!-- Modal -->
-    <div id="imageModal" class="modal">
-        <div class="modal-content relative">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <img alt="image" id="modalImage" src="" class="w-full max-w-lg">
-            <h2 id="modalTitle" class="mt-4 text-xl font-bold"></h2>
-            <p id="modalDescription" class="text-gray-600"></p>
-        </div>
+        {% endfor %}
     </div>
-    
+</section>
+
+<!-- Modal -->
+<div id="graphModal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-6xl h-[90vh] flex flex-col">
+        <button class="absolute top-2 right-4 text-gray-700 text-2xl font-bold hover:text-gray-900" onclick="closeGraphModal()">&times;</button>
+        <h2 id="modalTitle" class="text-xl font-bold text-center mb-4"></h2>
+        <div id="modalGraph" class="flex-grow w-full h-full"></div> <!-- Empty div for re-rendering -->
+    </div>
+</div>
+
+
+
+
 
 
 	<!-- Footer -->
@@ -182,12 +188,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const graphCards = document.querySelectorAll('.graph-card');
 
     function filterGraphs() {
-        const filterValue = filterSelect.value.toLowerCase();
-        const searchValue = searchInput.value.toLowerCase();
+        const filterValue = filterSelect ? filterSelect.value.toLowerCase() : 'all';
+        const searchValue = searchInput.value.trim().toLowerCase();
 
         graphCards.forEach(card => {
-            const cardCategory = card.getAttribute('data-category').toLowerCase();
-            const title = card.querySelector('h2').innerText.toLowerCase();
+            const cardCategory = card.getAttribute('data-category') ? card.getAttribute('data-category').toLowerCase() : '';
+            const titleElement = card.querySelector('h2');
+
+            if (!titleElement) {
+                console.error("Title element (h2) not found in:", card);
+                return;
+            }
+
+            const title = titleElement.innerText.trim().toLowerCase();
 
             const matchesFilter = filterValue === 'all' || cardCategory.includes(filterValue);
             const matchesSearch = title.includes(searchValue);
@@ -200,38 +213,52 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    filterSelect.addEventListener('change', filterGraphs);
-    searchInput.addEventListener('keyup', filterGraphs);
+    if (filterSelect) filterSelect.addEventListener('change', filterGraphs);
+    if (searchInput) searchInput.addEventListener('input', filterGraphs);
 });
 
-      function openModal(imgElement) {
-    let imageSrc = imgElement.getAttribute('data-image');
-    let title = imgElement.getAttribute('data-title');
-    let description = imgElement.getAttribute('data-description');
 
-    document.getElementById('modalImage').src = imageSrc;
-    document.getElementById('modalTitle').innerText = title;
-    document.getElementById('modalDescription').innerText = description;
-    document.getElementById('imageModal').style.display = "flex";
-}
+document.addEventListener("DOMContentLoaded", function () {
+    window.openGraphModal = function (title, graphId) {
+        console.log("Opening modal for graph:", graphId);
 
-function closeModal() {
-    document.getElementById('imageModal').style.display = "none";
-}
+        document.getElementById("modalTitle").innerText = title;
 
-// Close modal when clicking outside the modal content
-document.getElementById('imageModal').addEventListener('click', function(event) {
-    if (event.target === this) {
-        closeModal();
-    }
+        const graphContainer = document.getElementById(graphId);
+        const modalGraphContainer = document.getElementById("modalGraph");
+
+        if (!graphContainer) {
+            console.error("Graph container not found:", graphId);
+            return;
+        }
+
+        // Find the Plotly graph inside the clicked card
+        const plotlyGraph = graphContainer.querySelector(".plotly-graph-div");
+
+        if (plotlyGraph) {
+            // Get the Plotly figure data from the original graph
+            Plotly.toImage(plotlyGraph).then(function (imageData) {
+                // Clear modal content
+                modalGraphContainer.innerHTML = `<img src="${imageData}" class="w-full h-full object-contain"/>`;
+            }).catch(function (error) {
+                console.error("Error converting Plotly graph to image:", error);
+            });
+        } else {
+            console.error("Plotly graph not found in modal.");
+        }
+
+        // Show the modal
+        document.getElementById("graphModal").classList.remove("hidden");
+    };
+
+    window.closeGraphModal = function () {
+        document.getElementById("graphModal").classList.add("hidden");
+        document.getElementById("modalGraph").innerHTML = ""; // Clear modal content
+    };
 });
 
-// Close modal when clicking the close button
-document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+</script>
 
-
-
-    </script>
 
 </body>
 </html>

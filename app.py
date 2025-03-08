@@ -25,27 +25,22 @@ if len(age_std_suicide_rates_df) > 500:
 def index():
     graphs = []
 
-    # === FIRST DATASET (suicide_rates_df) ===
-    # 1. Line Graph: Global Suicide Trends Over Time
-    # Aggregate suicide rates per country
-# Sort countries by suicide rates for better readability
-    country_avg = suicide_rates_df.groupby("CountryName")["DeathRatePer100K"].mean().reset_index()
-    country_avg = country_avg.sort_values(by="DeathRatePer100K", ascending=False).head(15)  # Show top 15 countries
+    # 1. First Bar Chart: Global Suicide Rates
+    if "CountryName" in suicide_rates_df.columns:
+        country_avg = suicide_rates_df.groupby("CountryName")["DeathRatePer100K"].mean().reset_index()
+        country_avg = country_avg.sort_values(by="DeathRatePer100K", ascending=False).head(15)
+        
+        fig1 = px.bar(
+            country_avg, x="CountryName", y="DeathRatePer100K",
+            title="Top 15 Countries with Highest Suicide Rates",
+            labels={"DeathRatePer100K": "Suicide Rate per 100K"},
+            color="CountryName",
+            text_auto=True,
+            color_discrete_sequence=px.colors.qualitative.Vivid
+        )
+        graphs.append(("Global Suicide Trends", "Top countries with highest suicide rates", pio.to_html(fig1, full_html=False)))
 
-# Create Bar Chart for Global Suicide Rates
-    fig1 = px.bar(
-    country_avg, x="CountryName", y="DeathRatePer100K",
-    title="Top 15 Countries with Highest Suicide Rates",
-    labels={"DeathRatePer100K": "Suicide Rate per 100K"},
-    color="CountryName",
-        text_auto=True,
-        color_discrete_sequence=px.colors.qualitative.Vivid
-    )
-    graphs.append(("Global Suicide Trends", "Top countries with highest suicide rates", pio.to_html(fig1, full_html=False)))
-
-
-
-    # 2. Bar Graph: Suicide Rates by Country
+    # 2. Second Bar Graph: Top 10 Countries
     avg_suicide_by_country = suicide_rates_df.groupby("CountryName")["DeathRatePer100K"].mean().reset_index()
     fig2 = px.bar(
         avg_suicide_by_country.sort_values("DeathRatePer100K", ascending=False).head(10),
@@ -55,7 +50,7 @@ def index():
     )
     graphs.append(("Top Countries Suicide Rate", "Top 10 countries with the highest suicide rates", pio.to_html(fig2, full_html=False)))
 
-    # 3. Pie Chart: Suicide Rate Distribution by Continent
+    # 3. Pie Chart: Suicide Rates by Continent
     if "RegionName" in suicide_rates_df.columns:
         region_avg = suicide_rates_df.groupby("RegionName")["DeathRatePer100K"].mean().reset_index()
         fig3 = px.pie(
@@ -65,8 +60,7 @@ def index():
         )
         graphs.append(("Suicide Rates by Continent", "Percentage of suicide rates by continent", pio.to_html(fig3, full_html=False)))
 
-    # === SECOND DATASET (age_std_suicide_rates_df) ===
-    # 4. Line Graph: Suicide Trends by Age Group Over Time
+    # 4. Line Graph: Suicide Trends by Age Group
     if "Generation" in age_std_suicide_rates_df.columns:
         fig4 = px.line(
             age_std_suicide_rates_df, x="Year", y="DeathRatePer100K", color="Generation",
@@ -85,7 +79,7 @@ def index():
         )
         graphs.append(("Suicide by Gender & Region", "Comparison of suicide rates by gender and region", pio.to_html(fig5, full_html=False)))
 
-    # 6. Pie Chart: Suicide Rate Distribution by Gender
+    # 6. Pie Chart: Suicide Rates by Gender (Last Graph)
     if "Sex" in age_std_suicide_rates_df.columns:
         gender_avg = age_std_suicide_rates_df.groupby("Sex")["DeathRatePer100K"].mean().reset_index()
         fig6 = px.pie(

@@ -48,9 +48,9 @@ To set up and run the project, ensure that you have the following installed:
 
 5. **Run the Application:**
 
-   ```sh
+
    python app.py
-   ```
+
 
 6. **Access the Dashboard:**
    Open your browser and go to `http://127.0.0.1:5000/`
