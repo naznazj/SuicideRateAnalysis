@@ -100,7 +100,6 @@
                     <option value="all">All Graphs</option>
                     <option value="trends">Trends Over Time</option>
                     <option value="age">Age Group Analysis</option>
-                    <option value="economic">Economic Factors</option>
                     <option value="region">Regional Distribution</option>
                     <option value="gender">Gender Comparison</option>
                 </select>
@@ -128,6 +127,7 @@
     <div id="graphsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for title, description, graph in graphs %}
         <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition duration-300 graph-card"
+        data-category="{{title}}"
              onclick="openGraphModal(`{{ title }}`, `graph-{{ loop.index }}`)">
             <h2 class="mt-4 text-lg font-bold text-gray-900">{{ title }}</h2>
             <p class="text-sm text-gray-700">{{ description }}</p>
@@ -188,19 +188,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const graphCards = document.querySelectorAll('.graph-card');
 
     function filterGraphs() {
-        const filterValue = filterSelect ? filterSelect.value.toLowerCase() : 'all';
-        const searchValue = searchInput.value.trim().toLowerCase();
+        const filterValue = filterSelect.value.toLowerCase();
+        const searchValue = searchInput.value.toLowerCase();
 
         graphCards.forEach(card => {
-            const cardCategory = card.getAttribute('data-category') ? card.getAttribute('data-category').toLowerCase() : '';
-            const titleElement = card.querySelector('h2');
-
-            if (!titleElement) {
-                console.error("Title element (h2) not found in:", card);
-                return;
-            }
-
-            const title = titleElement.innerText.trim().toLowerCase();
+            const cardCategory = card.getAttribute('data-category').toLowerCase();
+            const title = card.querySelector('h2').innerText.toLowerCase();
 
             const matchesFilter = filterValue === 'all' || cardCategory.includes(filterValue);
             const matchesSearch = title.includes(searchValue);
@@ -213,10 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (filterSelect) filterSelect.addEventListener('change', filterGraphs);
-    if (searchInput) searchInput.addEventListener('input', filterGraphs);
+    filterSelect.addEventListener('change', filterGraphs);
+    searchInput.addEventListener('keyup', filterGraphs);
 });
-
 
 document.addEventListener("DOMContentLoaded", function () {
     window.openGraphModal = function (title, graphId) {
