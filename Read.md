@@ -48,25 +48,7 @@ To set up and run the project, ensure that you have the following installed:
 
 5. **Run the Application:**
 
-
    python app.py
-
 
 6. **Access the Dashboard:**
    Open your browser and go to `http://127.0.0.1:5000/`
-
-## Deployment
-
-To deploy this project on a production server:
-
-- Use a WSGI server like Gunicorn for Flask applications.
-- Deploy using cloud platforms such as AWS, DigitalOcean, or Heroku.
-- Set up an Nginx reverse proxy for better performance.
-
-## License
-
-This project is licensed under the MIT License. See `LICENSE` for details.
-
-## Acknowledgments
-
-The data used in this project is sourced from reputable public datasets on global suicide rates. The analysis aims to provide insights while promoting mental health awareness.
